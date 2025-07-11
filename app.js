@@ -11,13 +11,20 @@ app.use(cors())
 //  static file access
 app.use("/uploads",express.static('uploads'))
 
+
+// login/register routes
+const userAuth=require('./routes/loginRoute')
+app.use('/api/userAuth',userAuth)
+
+
+
 // mongoose.connection to the db
 mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log('connected to MongoDb'))
 .catch(err => console.log("MongoDB connection error",err))
 
 
-const Port= 3000
+const Port= 3001
 app.listen(Port,()=>{
     console.log(`server is runing on port ${Port}`)
 })
