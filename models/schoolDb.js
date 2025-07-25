@@ -6,9 +6,9 @@ const userSchema= new Schema({
     email:{type:String,required:true,unique:true},
     password:{type:String,required:true},
     isActive:{type:Boolean,default:true},
-    role:{type:String,enum:['admin','teacher','student'],required:true},
+    role:{type:String,enum:['admin','teacher','student','parent'],required:true},
     teacher:{type:mongoose.Schema.Types.ObjectId,ref:'Teacher',default:null},
-    Parent:{type:mongoose.Schema.Types.ObjectId,ref:'Parent',default:null},
+    parent:{type:mongoose.Schema.Types.ObjectId,ref:'Parent',default:null},
 
 },{timestamps:true})
 

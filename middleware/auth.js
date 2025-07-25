@@ -1,16 +1,17 @@
 const jwt = require('jsonwebtoken')
-const { route } = require('../routes/loginRoute')
 const JWT_SECRET= process.env.JWT_SECRET
 
 const auth= (req,res,next)=>{
     // extract the authorization error/
 
     const authHeader= req.headers.authorization
+    console.log(authHeader);
     // get actualtoken from the header
     const token= authHeader && authHeader.split(' ')[1]
+    console.log(token);
 
     // check if we have the token
-    if (!token) return res.status(401),json({mesage;'NO token provided'})
+    if (!token) return res.status(401).json({mesage:'NO token provided'})
         try {
             // verify the token using the secretKey
             const decode=jwt.verify(token,JWT_SECRET)
@@ -18,9 +19,10 @@ const auth= (req,res,next)=>{
             // this is the logged  user
             req.user= decode
             // proceed to the next route
+            console.log(req.user)
             next()
         } catch (error) {
-            res.status(500).json({mesage:error.mesage})
+            res.status(500).json({message:error.message})
             
         }
 
@@ -30,9 +32,11 @@ const auth= (req,res,next)=>{
 // accepts any number of alowed roles(eg:admin,teacher)
 // ... params -accepts any number of arguments and automatically puts them into an array
 
-cont authorizeRoles=(...allowedRoles)=>{
+const authorizeRoles=(...allowedRoles)=>{
     return(req,res,next)=>{
-        if(!req.user|| allowedRoles.includes(req.user.role)){
+         console.log("🔍 Checking role:", req.user?.role);
+            console.log("🔐 Allowed roles:", allowedRoles);
+        if(!req.user|| !allowedRoles.includes(req.user.role)){
             return res.status(403).json({message:"Acess denied: Insuficient Permissions"})
         }
         next()

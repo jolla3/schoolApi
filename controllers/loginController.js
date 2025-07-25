@@ -18,7 +18,6 @@ exports.registerAdmin= async(req,res)=>{
         return res.status(400).json({message:"Email already exists"})
 
     // hash password
-    const salt= await bcyrpt.genSalt(10)
     const hashedPassword= await bcyrpt.hash(password,10)
     const user= new User({
         name,
@@ -59,8 +58,8 @@ exports.login= async(req,res)=>{
     const token= jwt.sign({
      userId:user._id,
      role:user.role,},
-     process.env.Jwt_secret,{
-     expiresIn:"1h"}
+     process.env.JWt_SECRET,{
+     expiresIn:"7d"}
     )
     res.json({message:"login succesfully",
         token,
