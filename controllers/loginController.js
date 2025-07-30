@@ -9,13 +9,13 @@ exports.registerAdmin= async(req,res)=>{
 
     // verify admin secretkey
     if (secretKey!==process.env.secretKey){
-        return res.status(403).json({message:"unauthorized Account Creation"})
+        return res.json({message:"unauthorized Account Creation"})
     }
 
     // check if user exists
     const userExists= await User.findOne({email})
     if(userExists)
-        return res.status(400).json({message:"Email already exists"})
+        return res.json({message:"Email already exists"})
 
     // hash password
     const hashedPassword= await bcyrpt.hash(password,10)
@@ -29,7 +29,7 @@ exports.registerAdmin= async(req,res)=>{
         parent:null
     })
     const newUser=await user.save()
-    res.status(201).json({message:`User ${newUser.role} ${name} Created Successfully  `, newUser})
+    res.json({message:`User ${newUser.role} ${name} Created Successfully  `, newUser})
 
     }
    
