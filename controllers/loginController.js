@@ -41,17 +41,17 @@ exports.login= async(req,res)=>{
 
     // check the user by the email
     if(!user){
-        return res.status(404).json({message:"invalid cridentials"})
+        return res.json({message:"invalid cridentials"})
     }
 
     // check if the user is active
     if(!user.isActive){
-        return res.status(403).json({message:"Your acount has been deactivated" })
+        return res.json({message:"Your acount has been deactivated" })
     }
     // check if the password is correct
     const isMatch= await bcyrpt.compare(password,user.password)
     if(!isMatch){
-        return res.status(401).json({message:"invalid cridentials .."})
+        return res.json({message:"invalid cridentials .."})
     }
 
     // generate a token
