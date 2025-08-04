@@ -8,7 +8,7 @@ exports.addClassroom = async (req, res) => {
         await savedClassroom.save()
         res.json({ message: "saved Classroom",savedClassroom })
     } catch (error) {
-        res.status(500).json({ message: error.message })
+        res.json({ message: error.message })
     }
 }
 
@@ -20,7 +20,7 @@ exports.getAllClassrooms= async (req,res)=>{
         .populate('students', 'name addmisionNumber')
         res.json({classroom})
     } catch (error) {
-        res.status(500).json({message:error.message})
+        res.json({message:error.message})
     }
 }
 
@@ -33,10 +33,10 @@ exports.getAllClassroomById= async(req,res)=>{
     .populate('students', 'name addmisionNumber')
     
     if(!classroom)
-        return res.status(404).json({message:"classroom not found"})
+        return res.json({message:"classroom not found"})
     res.json({classroom})
    } catch (error) {
-            res.status(500).json({message:error.message})
+            res.json({message:error.message})
 
    }
 
@@ -52,11 +52,11 @@ exports.UpdateClassroom= async(req,res)=>{
             {new:true}
         )
 
-        if (!UpdateClassroom) return res.status(404).json({message:"not found"})
+        if (!UpdateClassroom) return res.json({message:"not found"})
 
             res.json({UpdateClassroom})
     } catch (error) {
-                res.status(500).json({message:error.message})
+                res.json({message:error.message})
 
     }
 }
@@ -66,10 +66,10 @@ exports.deleteClassroom= async (req,res)=>{
     // find the class room and delete by id
     try {
         const deledtClassroom= await Classroom.findByIdAndDelete(req.params.id)
-        if(!deledtClassroom) return res.status(500).json({message:"Classroom Not Found"})
+        if(!deledtClassroom) return res.json({message:"Classroom Not Found"})
             res.json({message:`Classroom ${deledtClassroom.name} deleted succesfully`})
     } catch (error) {
-                res.status(500).json({message:error.message})
+                res.json({message:error.message})
 
     }
 }
