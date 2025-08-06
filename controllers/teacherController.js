@@ -28,7 +28,7 @@ exports.addTeacher = async (req, res) => {
             await newUser.save()
             res.status(201).json({message:`Teacher  ${savedTeacher.name},registered succesfully`,newUser} )
     } catch (error) {
-        res.status(500).json({message:error.message})
+        res.json({message:error.message})
     }
 }
 
@@ -41,7 +41,7 @@ exports.getAllTeachers= async(req,res)=>{
     } catch (error) {
       console.log("catch")
       console.log(error)
-        res.status(500).json({message:error.message})
+        res.json({message:error.message})
     }
 }
 
@@ -49,10 +49,10 @@ exports.getAllTeachers= async(req,res)=>{
 exports.getTeacherById= async (req, res) => {
     try {
         const teacher= await Teacher.findById(req.params.id)
-        if (!teacher) return res.status(404).json({message:"Teacher not found"})
+        if (!teacher) return res.json({message:"Teacher not found"})
             res.json({teacher})
     } catch (error) {
-        res.status(500).json({message:error.message})
+        res.json({message:error.message})
     }
 }
 
@@ -64,7 +64,7 @@ exports.updateTeacher = async (req, res) => {
     const { name, email, password, ...otherFields } = req.body;
     const existUser= await User.findById(userId);
     if (!existUser) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.json({ message: 'User not found' });
     }
     // 1. Update teacher info
     const updatedTeacher = await Teacher.findByIdAndUpdate(
@@ -74,13 +74,13 @@ exports.updateTeacher = async (req, res) => {
     );
 
     if (!updatedTeacher) {
-      return res.status(404).json({ message: 'Teacher not found' });
+      return res.json({ message: 'Teacher not found' });
     }
 
     // 2. Find and update the corresponding user
     const user = await User.findOne({ teacher: teacherId });
     if (!user) {
-      return res.status(404).json({ message: 'Linked user not found' });
+      return res.json({ message: 'Linked user not found' });
     }
 
     // 3. Update user fields
@@ -94,7 +94,7 @@ exports.updateTeacher = async (req, res) => {
 
     await user.save();
 
-    res.status(200).json({
+    res.json({
       message: 'Teacher and linked user updated successfully',
       updatedTeacher,
       updatedUser: {
@@ -105,7 +105,7 @@ exports.updateTeacher = async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.json({ message: error.message });
   }
 }
 
@@ -115,7 +115,7 @@ exports.deledtTeacher= async (req,res)=>{
     // find the class room and delete by id
     try {
         const deledtTeacher= await Teacher.findByIdAndDelete(req.params.id)
-        if(!deledtTeacher) return res.status(500).json({message:"Classroom Not Found"})
+        if(!deledtTeacher) return res.json({message:"Classroom Not Found"})
 
         await Classroom.updateMany(
             {classroom:deledtTeacher._id},
@@ -124,7 +124,7 @@ exports.deledtTeacher= async (req,res)=>{
   
             res.json({message:` Teacher ${deledtTeacher.name} deleted succesfully`})
     } catch (error) {
-                res.status(500).json({message:error.message})
+                res.json({message:error.message})
 
     }
 }
@@ -138,16 +138,16 @@ exports.getMyClasses = async (req, res) => {
     const user = await User.findById(userId).populate("teacher");
 
     if (!user || !user.teacher) {
-      return res.status(404).json({ message: "Teacher not found" });
+      return res.json({ message: "Teacher not found" });
     }
 
     const classes = await Classroom.find({ teacher: user.teacher._id })
       .populate('students');
 
-    res.status(200).json({ message: "Classes", classes });
+    res.json({ message: "Classes", classes });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: error.message });
+    res.json({ message: error.message });
   }
 };
 
@@ -158,18 +158,18 @@ exports.getMyAssigments = async (req, res) => {
     const user = await User.findById(userId).populate("teacher");
 
     if (!user || !user.teacher) {
-      return res.status(404).json({ message: "Teacher not found" });
+      return res.json({ message: "Teacher not found" });
     }
 
     const assigments = await Classroom.find({ postedBy: user.teacher._id })
       .populate('classroom', 'name gradeLevel classYear')
       .populate('postedBy', 'name email phone');
 
-    res.status(200).json({ message: "Assignments fetched", assigments });
+    res.json({ message: "Assignments fetched", assigments });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.json({ message: error.message });
   }
-};
+}
 
 
 
