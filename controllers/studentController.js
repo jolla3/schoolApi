@@ -1,124 +1,121 @@
-// database
-const {Student,Classroom,Parent}=require('../model/SchoolDb')
-const multer =require('multer')
-const  fs=require('fs')
-const path=require('path')
-
-// file loacation folder/directory
-const  upload=multer({dest:'uploads/'})
-exports.uploadStudentPhoto=upload.single('photo')
-exports.addStudent=async (req,res) => {
+//database
+const {Student , Classroom, Parent}=require('../model/schooldb')
+const multer = require('multer')
+const fs = require('fs')
+const path = require('path')
+//file location folder
+const upload = multer({dest: 'uploads/'})
+exports.uploadStudentPhoto = upload.single('photo')
+exports.addStudent = async (req, res) => {
     try {
-        // destructuring
-        const {name,dateOfBirth,gender,admissionNumber,parentNationalId, classroomId}=req.body
-        // check if parent exist by national id
-        const parentExist=await Parent.findOne({nationalId:parentNationalId})
-        if(!parentExist )return res.status(404).json({message:"Parent with provided Natinal Id not found"})
-        // check if the student exist
-        const studentExist=await Student.findOne({admissionNumber})
-        if(studentExist) return res.json({message:"Addmission No has already been assigned to someone else"})
-        // check if the class exist
-        const classExist=await Classroom.findById(classroomId)
-        if(!classExist) return res.status(500).json({message:"Classroom not found"})
-        
-        // prepare our upload file
-        let photo=null
-        if(req.file){
-            const ext=path.extname(req.file.originalname)
-            console.log(ext)
-            const newFileName=Date.now()+ext
-            console.log(newFileName)
-            const newPath=path.join('uploads',newFileName)
-            console.log(newPath)
-            fs.renameSync(req.file.path,newPath)
-            photo=newPath.replace(/\\/g,'/')
-            console.log(photo)
+        //destructure
+        const{name,dateOfBirth,gender,admissionNumber,parentNationalId,classroomID}=req.body
+        //check if parent exists
+        const existParent = await Parent.findOne({nationalId:parentNationalId})
+        if(!existParent){
+            return res.status(400).json({message:"Parent with provided ID does not exist"})
         }
-
-        // create student Document
-        const newStudent=new Student({
+        const existStudent = await Student.findOne({admissionNumber})
+        //check if the admisssion is already taken
+        if(existStudent){
+            return res.status(400).json({message:"Admission Number already exists"})
+        }
+        //check if classroom exists
+        const existClassroom = await Classroom.findById(classroomID)
+        if(!existClassroom){
+            return res.status(400).json({message:"Classroom does not exist"})
+        }
+        //prep the student photo
+        let photo = null
+        if(req.file){
+            const ext = path.extname(req.file.originalname)
+            const newFilename = Date.now() + ext
+            const newPath = path.join('uploads', newFilename)
+            fs.renameSync(req.file.path, newPath)
+            photo = newPath.replace(/\\/g, '/')
+        }
+        // create Student
+        const newStudent = new Student({
             name,
             dateOfBirth,
             gender,
             admissionNumber,
-            photo,
-            parent:parentExist._id,
-            classroom:classExist._id
+            classroom: classroomID,
+            parent: existParent._id,
+            photo
         })
-        const savedStudent=await newStudent.save()
-
-        // adding a student to a class using the $addToSet to pevent duplicates
-        await Classroom.findByIdAndUpdate(
-            classExist._id,
-            {$addToSet:{students:savedStudent._id}}
-        )
-
-        res.status(201).json(savedStudent)
+        const savedStudent = await newStudent.save()
+        // adding a student to classroom using the addToSet to avoid duplication
+        await Classroom.findByIdAndUpdate(classroomID,{$addToSet:{students:savedStudent._id}})
+        res.status(201).json({ message: 'Student created successfully', student: savedStudent })
 
     } catch (error) {
-        res.status(500).json({message:error.message})
+        res.status(500).json({ message: 'Internal server error', error: error.message })        
     }
-    
 }
 
-// get all students
-exports.getAllStudents=async (req,res) => {
+//get all students
+exports.getAllStudents = async (req, res) => {
     try {
-        const students=await Student.find()
-        .populate('classroom')
-        .populate('parent')
+        const students = await Student.find()
+        .populate('classroom','name gradeLevel classYear')
+        .populate('parent','name email phone')
         res.status(200).json(students)
     } catch (error) {
-        res.status(500).json({message:error.message})
+        res.status(500).json({ message: 'Internal server error', error: error.message })
     }
 }
 
-// get  student by id
-exports.getStudentById=async (req,res) => {
+// get student by id
+exports.getStudentById = async (req, res) => {
     try {
-        const student=await Student.findById(req.params.id)
-        .populate('classroom')
-        .populate('parent')
-        if(!student) return res.status(404).json({message:"Student Not Found"})
+        const studentID = req.params.id
+        const student = await Student.findById(studentID)
+        .populate('classroom','name gradeLevel classYear')
+        .populate('parent','name email phone')
+        if(!student){
+            return res.status(400).json({message:"Student does not exist"})
+            }
         res.status(200).json(student)
     } catch (error) {
-        res.status(500).json({message:error.message})
+        res.status(500).json({ message: 'Internal server error', error: error.message })
     }
-}
+ }
 
-// update student
-exports.updateStudent=async (req,res) => {
+ // update student 
+ exports.updateStudent = async (req, res) => {
+     try {
+         const studentID = req.params.id
+         const updatedStudent = await Student.findByIdAndUpdate(studentID, req.body, { new: true })
+         if (!updatedStudent) {
+             return res.status(404).json({ message: 'Student not found' })
+         }
+         res.status(200).json({ message: 'Student updated successfully', student: updatedStudent })
+     } catch (error) {
+         res.status(500).json({ message: 'Internal server error', error: error.message })
+     }
+ }
+
+ //delete student
+ exports.deleteStudent = async (req, res) => {
     try {
-        const updatedStudent=await Student.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            {new:true}
-        )
-        if(!updatedStudent) return res.status(404).json({message:"Student Not Found"})
-        res.json(updatedStudent)
+        const studentID = req.params.id
+        const deletedStudent = await Student.findByIdAndDelete(studentID)
+        if (!deletedStudent) {
+            return res.status(404).json({ message: 'Student not found' })
+        }
+
+         // remove photo from storage
+        if (deletedStudent.photo && fs.existsSync(deletedStudent.photo)) {
+            fs.unlinkSync(deletedStudent.photo)
+        }
+        
+        //remove student from classroom
+        await Classroom.updateMany(
+            { students: deletedStudent._id },
+             { $pull: { students: deletedStudent._id } })
+        res.status(200).json({ message: 'Student deleted successfully', student: deletedStudent })
     } catch (error) {
-        res.status(500).json({message:error.message})
+        res.status(500).json({ message: 'Internal server error', error: error.message })
     }
-}
-
-// delete student
-exports.deleteStudent=async (req,res) => {
-    try {
-        const deletedStudent= await Student.findByIdAndDelete(req.params.id)
-        if(!deletedStudent) return res.json({message:"Student Not Found"})
-        // remove the student from classroom
-        // await Classroom.updateMany(
-        //     {students:deletedStudent._id},
-        //     {$pull: {students:deletedStudent._id}}
-        // )
-
-        await Classroom.findByIdAndUpdate(
-            deletedStudent.classroom,
-            {$pull: {students:deletedStudent._id}},
-            {new:true}
-        )
-        res.status(200).json({message:"Student deleted successfully"})
-    } catch (error) {
-        res.status(500).json({message:error.message})
-    }    
 }
