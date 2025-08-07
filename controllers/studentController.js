@@ -1,114 +1,124 @@
-const { Student,Classroom,Parent } = require("../models/schoolDb")
+// database
+const {Student,Classroom,Parent}=require('../model/SchoolDb')
+const multer =require('multer')
+const  fs=require('fs')
+const path=require('path')
 
-const multer=require('multer')
-const fs= require('fs')
-const path=require('path');
-const { populate } = require("dotenv");
+// file loacation folder/directory
+const  upload=multer({dest:'uploads/'})
+exports.uploadStudentPhoto=upload.single('photo')
+exports.addStudent=async (req,res) => {
+    try {
+        // destructuring
+        const {name,dateOfBirth,gender,admissionNumber,parentNationalId, classroomId}=req.body
+        // check if parent exist by national id
+        const parentExist=await Parent.findOne({nationalId:parentNationalId})
+        if(!parentExist )return res.status(404).json({message:"Parent with provided Natinal Id not found"})
+        // check if the student exist
+        const studentExist=await Student.findOne({admissionNumber})
+        if(studentExist) return res.json({message:"Addmission No has already been assigned to someone else"})
+        // check if the class exist
+        const classExist=await Classroom.findById(classroomId)
+        if(!classExist) return res.status(500).json({message:"Classroom not found"})
+        
+        // prepare our upload file
+        let photo=null
+        if(req.file){
+            const ext=path.extname(req.file.originalname)
+            console.log(ext)
+            const newFileName=Date.now()+ext
+            console.log(newFileName)
+            const newPath=path.join('uploads',newFileName)
+            console.log(newPath)
+            fs.renameSync(req.file.path,newPath)
+            photo=newPath.replace(/\\/g,'/')
+            console.log(photo)
+        }
 
-// file location folder/directory
-const upload = multer({ dest: "uploads" }); 
-exports.UploadStudentPhoto = upload.single("file")
-exports.addStudent = async (req, res) => {
-  try {
-    const { name, dateOfBirth, admissionNumber, parentNationalId, classroomId, gender } = req.body;
+        // create student Document
+        const newStudent=new Student({
+            name,
+            dateOfBirth,
+            gender,
+            admissionNumber,
+            photo,
+            parent:parentExist._id,
+            classroom:classExist._id
+        })
+        const savedStudent=await newStudent.save()
 
-    const parentExist = await Parent.findOne({ nationalId: parentNationalId });
-    if (!parentExist) return res.status(404).json({ message: "Parent not found by National ID" });
+        // adding a student to a class using the $addToSet to pevent duplicates
+        await Classroom.findByIdAndUpdate(
+            classExist._id,
+            {$addToSet:{students:savedStudent._id}}
+        )
 
-    const studentExist = await Student.findOne({ admissionNumber });
-    if (studentExist) return res.status(400).json({ message: "Admission number already exists" });
+        res.status(201).json(savedStudent)
 
-    const classExist = await Classroom.findById(classroomId);
-    if (!classExist) return res.status(404).json({ message: "Classroom not found" });
-
-    let photo = null;
-    if (req.file) {
-      try {
-        const ext = path.extname(req.file.originalname);
-        const newfileName = Date.now() + ext;
-        const newPath = path.join('uploads', newfileName);
-        fs.renameSync(req.file.path, newPath);
-        photo = newPath.replace(/\\/g, '/');
-      } catch (fileErr) {
-        return res.status(500).json({ message: "File upload failed", error: fileErr.message });
-      }
+    } catch (error) {
+        res.status(500).json({message:error.message})
     }
-
-    const newStudent = new Student({
-      name, dateOfBirth, gender, admissionNumber, photo,
-      parent: parentExist._id, classroom: classExist._id
-    });
-
-    const savedStudent = await newStudent.save();
-
-    await Classroom.findByIdAndUpdate(classExist._id, {
-      $addToSet: { students: savedStudent._id }
-    });
-
-    res.status(201).json({ message: "Student added successfully", savedStudent });
-
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
+    
+}
 
 // get all students
-exports.getAllStudents = async (req, res) => {
+exports.getAllStudents=async (req,res) => {
     try {
-        const students = await Student.findById(req.params.id)
-          .populate("classroom")
-          .populate("parent");
-        if(!students)
-            return res.status(404).json({ message: "No students found" })
-        res.status(200).json(students);
-
+        const students=await Student.find()
+        .populate('classroom')
+        .populate('parent')
+        res.status(200).json(students)
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({message:error.message})
     }
 }
 
-// get by id
-exports.getStudentsbyId=
-
-
-
-
-
+// get  student by id
+exports.getStudentById=async (req,res) => {
+    try {
+        const student=await Student.findById(req.params.id)
+        .populate('classroom')
+        .populate('parent')
+        if(!student) return res.status(404).json({message:"Student Not Found"})
+        res.status(200).json(student)
+    } catch (error) {
+        res.status(500).json({message:error.message})
+    }
+}
 
 // update student
-exports.updateStudent= async(req,res)=>{
+exports.updateStudent=async (req,res) => {
     try {
-        const updateStudent = await Student.findByIdAndUpdate(
-          req.params.id,
-          req.body,
-          { new: true }
+        const updatedStudent=await Student.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            {new:true}
         )
-        if(!updateStudent)
-            return res.status(404).json({ message: "No student found" })
-        res.status(200).json(updateStudent)
+        if(!updatedStudent) return res.status(404).json({message:"Student Not Found"})
+        res.json(updatedStudent)
     } catch (error) {
-       res.status(500).json({ message: error.message }) 
+        res.status(500).json({message:error.message})
     }
 }
 
-
 // delete student
-exports.deleteStudent=async(req,res)=>{
-  try {
-    const deletedStudent = await Student.findByIdAndDelete(req.params.id)
-    if(!deletedStudent)
-        return res.status(404).json({ message: "No student found" })
-   
-    // remove the student from the classroom
-    await Classroom.updateMany(
-      {student:deletedStudent._id},
-      { $pull: { student: deletedStudent._id } }
-      )
-  
-    res.status(200).json({ message: "student deleted successfully" });
+exports.deleteStudent=async (req,res) => {
+    try {
+        const deletedStudent= await Student.findByIdAndDelete(req.params.id)
+        if(!deletedStudent) return res.json({message:"Student Not Found"})
+        // remove the student from classroom
+        // await Classroom.updateMany(
+        //     {students:deletedStudent._id},
+        //     {$pull: {students:deletedStudent._id}}
+        // )
 
-  } catch (error) {
-    res.status(500).json({ message: error.message }); 
-  }
+        await Classroom.findByIdAndUpdate(
+            deletedStudent.classroom,
+            {$pull: {students:deletedStudent._id}},
+            {new:true}
+        )
+        res.status(200).json({message:"Student deleted successfully"})
+    } catch (error) {
+        res.status(500).json({message:error.message})
+    }    
 }
