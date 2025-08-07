@@ -1,15 +1,13 @@
 const express= require('express')
-const router= express.Router()
-const parentController= require('../controllers/parentController')
-
+const router=express.Router()
+const parentController= require('../controller/parentController')
 // authorization
-const{auth,authorizeRoles}= require('../middleware/auth')
+const {auth,authorizeRoles}=require('../middleware/auth')
 
-router.post('/',auth,authorizeRoles('admin'), parentController.addParent)
-router.get('/all', auth,authorizeRoles('admin'), parentController.getAllParents)
-// router.get('/:id', classroomController.getAllClassroomById)
-router.put('/:id',auth,authorizeRoles("admin"), parentController.updateParent)
-router.delete('/:id',auth,authorizeRoles("admin"), parentController.deleteParent)
+router.post("/",auth,authorizeRoles("admin"),parentController.addParent)
+router.get('/',auth,parentController.getAppParents)
+router.get('/:id',auth,parentController.getParentById)
+router.put('/:id',auth, authorizeRoles('admin'),parentController.updateParent)
+router.delete('/:id',auth,authorizeRoles('admin'),parentController.deleteParent)
 
-
-module.exports = router
+module.exports=router
