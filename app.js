@@ -38,7 +38,7 @@ app.use('/api/admin', admin);
 
 // teacherDash
 const teacherDashoardRouter = require('./routes/teacherDashRouter')
-const { parentDash } = require('./controllers/parentDashController')
+// const { parentDash } = require('./controllers/parentDashController')
 app.use('/api/teacherDash', teacherDashoardRouter);
 
 // parentDash
