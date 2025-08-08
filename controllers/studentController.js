@@ -1,5 +1,5 @@
 //database
-const {Student , Classroom, Parent}=require('../models/schoolDb')
+const {Student , Classroom, Parent}=require('../model/schooldb')
 const multer = require('multer')
 const fs = require('fs')
 const path = require('path')
@@ -13,17 +13,17 @@ exports.addStudent = async (req, res) => {
         //check if parent exists
         const existParent = await Parent.findOne({nationalId:parentNationalId})
         if(!existParent){
-            return res.json({message:"Parent with provided ID does not exist"})
+            return res.status(400).json({message:"Parent with provided ID does not exist"})
         }
         const existStudent = await Student.findOne({admissionNumber})
         //check if the admisssion is already taken
         if(existStudent){
-            return res.json({message:"Admission Number already exists"})
+            return res.status(400).json({message:"Admission Number already exists"})
         }
         //check if classroom exists
         const existClassroom = await Classroom.findById(classroomID)
         if(!existClassroom){
-            return res.json({message:"Classroom does not exist"})
+            return res.status(400).json({message:"Classroom does not exist"})
         }
         //prep the student photo
         let photo = null
@@ -47,7 +47,7 @@ exports.addStudent = async (req, res) => {
         const savedStudent = await newStudent.save()
         // adding a student to classroom using the addToSet to avoid duplication
         await Classroom.findByIdAndUpdate(classroomID,{$addToSet:{students:savedStudent._id}})
-        res.json({ message: 'Student created successfully', student: savedStudent })
+        res.status(201).json({ message: 'Student created successfully', student: savedStudent })
 
     } catch (error) {
         res.status(500).json({ message: 'Internal server error', error: error.message })        
@@ -60,7 +60,7 @@ exports.getAllStudents = async (req, res) => {
         const students = await Student.find()
         .populate('classroom','name gradeLevel classYear')
         .populate('parent','name email phone')
-        res.json(students)
+        res.status(200).json(students)
     } catch (error) {
         res.status(500).json({ message: 'Internal server error', error: error.message })
     }
@@ -74,35 +74,87 @@ exports.getStudentById = async (req, res) => {
         .populate('classroom','name gradeLevel classYear')
         .populate('parent','name email phone')
         if(!student){
-            return res.json({message:"Student does not exist"})
+            return res.status(400).json({message:"Student does not exist"})
             }
-        res.json(student)
+        res.status(200).json(student)
     } catch (error) {
         res.status(500).json({ message: 'Internal server error', error: error.message })
     }
  }
 
- // update student 
- exports.updateStudent = async (req, res) => {
-     try {
-         const studentID = req.params.id
-         const updatedStudent = await Student.findByIdAndUpdate(studentID, req.body, { new: true })
-         if (!updatedStudent) {
-             return res.json({ message: 'Student not found' })
-         }
-         res.json({ message: 'Student updated successfully', student: updatedStudent })
-     } catch (error) {
-         res.status(500).json({ message: 'Internal server error', error: error.message })
-     }
- }
+// UPDATE student with FormData support
+exports.updateStudent = async (req, res) => {
+  try {
+    const studentID = req.params.id;
 
+    // Validate classroom
+    let classroom = null;
+    if (req.body.classroomID) {
+      classroom = await Classroom.findById(req.body.classroomID);
+      if (!classroom) {
+        return res.status(404).json({ message: 'Classroom not found' });
+      }
+    }
+
+    // Validate parent by National ID
+    let parent = null;
+    if (req.body.parentNationalId) {
+      parent = await Parent.findOne({ nationalId: req.body.parentNationalId });
+      if (!parent) {
+        return res.status(404).json({ message: 'Parent not found' });
+      }
+    }
+
+    // Prepare updated fields from the form
+    const updatedFields = {
+      name: req.body.name,
+      admissionNumber: req.body.admissionNumber,
+      dateOfBirth: req.body.dateOfBirth,
+      gender: req.body.gender,
+      classroom: classroom ? classroom._id : undefined,
+      parent: parent ? parent._id : undefined,
+    };
+
+    // If new photo uploaded, add its path
+    if (req.file) {
+      updatedFields.photo = req.file.path;
+    }
+
+    // Remove undefined fields so they don’t overwrite existing data
+    Object.keys(updatedFields).forEach(
+      (key) => updatedFields[key] === undefined && delete updatedFields[key]
+    );
+
+    // Update student in DB
+    const updatedStudent = await Student.findByIdAndUpdate(
+      studentID,
+      updatedFields,
+      { new: true }
+    );
+
+    if (!updatedStudent) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    res.status(200).json({
+      message: 'Student updated successfully',
+      student: updatedStudent,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: 'Internal server error',
+      error: error.message,
+    });
+  }
+};
  //delete student
  exports.deleteStudent = async (req, res) => {
     try {
         const studentID = req.params.id
         const deletedStudent = await Student.findByIdAndDelete(studentID)
         if (!deletedStudent) {
-            return res.json({ message: 'Student not found' })
+            return res.status(404).json({ message: 'Student not found' })
         }
 
          // remove photo from storage
@@ -114,7 +166,7 @@ exports.getStudentById = async (req, res) => {
         await Classroom.updateMany(
             { students: deletedStudent._id },
              { $pull: { students: deletedStudent._id } })
-        res.json({ message: 'Student deleted successfully', student: deletedStudent })
+        res.status(200).json({ message: 'Student deleted successfully', student: deletedStudent })
     } catch (error) {
         res.status(500).json({ message: 'Internal server error', error: error.message })
     }
