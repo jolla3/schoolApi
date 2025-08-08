@@ -1,5 +1,5 @@
 //database
-const {Student , Classroom, Parent}=require('../model/schooldb')
+const {Student , Classroom, Parent}=require('../models/schoolDb')
 const multer = require('multer')
 const fs = require('fs')
 const path = require('path')

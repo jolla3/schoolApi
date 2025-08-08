@@ -1,4 +1,4 @@
-const {Parent, User} = require("../model/schooldb")
+const {Parent, User} = require("../models/schoolDb")
 const bcrypt = require('bcrypt')
 
 // add parent
