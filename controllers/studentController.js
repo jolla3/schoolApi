@@ -13,17 +13,17 @@ exports.addStudent = async (req, res) => {
         //check if parent exists
         const existParent = await Parent.findOne({nationalId:parentNationalId})
         if(!existParent){
-            return res.status(400).json({message:"Parent with provided ID does not exist"})
+            return res.json({message:"Parent with provided ID does not exist"})
         }
         const existStudent = await Student.findOne({admissionNumber})
         //check if the admisssion is already taken
         if(existStudent){
-            return res.status(400).json({message:"Admission Number already exists"})
+            return res.json({message:"Admission Number already exists"})
         }
         //check if classroom exists
         const existClassroom = await Classroom.findById(classroomID)
         if(!existClassroom){
-            return res.status(400).json({message:"Classroom does not exist"})
+            return res.json({message:"Classroom does not exist"})
         }
         //prep the student photo
         let photo = null
@@ -47,7 +47,7 @@ exports.addStudent = async (req, res) => {
         const savedStudent = await newStudent.save()
         // adding a student to classroom using the addToSet to avoid duplication
         await Classroom.findByIdAndUpdate(classroomID,{$addToSet:{students:savedStudent._id}})
-        res.status(201).json({ message: 'Student created successfully', student: savedStudent })
+        res.json({ message: 'Student created successfully', student: savedStudent })
 
     } catch (error) {
         res.status(500).json({ message: 'Internal server error', error: error.message })        
@@ -60,7 +60,7 @@ exports.getAllStudents = async (req, res) => {
         const students = await Student.find()
         .populate('classroom','name gradeLevel classYear')
         .populate('parent','name email phone')
-        res.status(200).json(students)
+        res.json(students)
     } catch (error) {
         res.status(500).json({ message: 'Internal server error', error: error.message })
     }
@@ -74,9 +74,9 @@ exports.getStudentById = async (req, res) => {
         .populate('classroom','name gradeLevel classYear')
         .populate('parent','name email phone')
         if(!student){
-            return res.status(400).json({message:"Student does not exist"})
+            return res.json({message:"Student does not exist"})
             }
-        res.status(200).json(student)
+        res.json(student)
     } catch (error) {
         res.status(500).json({ message: 'Internal server error', error: error.message })
     }
@@ -88,9 +88,9 @@ exports.getStudentById = async (req, res) => {
          const studentID = req.params.id
          const updatedStudent = await Student.findByIdAndUpdate(studentID, req.body, { new: true })
          if (!updatedStudent) {
-             return res.status(404).json({ message: 'Student not found' })
+             return res.json({ message: 'Student not found' })
          }
-         res.status(200).json({ message: 'Student updated successfully', student: updatedStudent })
+         res.json({ message: 'Student updated successfully', student: updatedStudent })
      } catch (error) {
          res.status(500).json({ message: 'Internal server error', error: error.message })
      }
@@ -102,7 +102,7 @@ exports.getStudentById = async (req, res) => {
         const studentID = req.params.id
         const deletedStudent = await Student.findByIdAndDelete(studentID)
         if (!deletedStudent) {
-            return res.status(404).json({ message: 'Student not found' })
+            return res.json({ message: 'Student not found' })
         }
 
          // remove photo from storage
@@ -114,7 +114,7 @@ exports.getStudentById = async (req, res) => {
         await Classroom.updateMany(
             { students: deletedStudent._id },
              { $pull: { students: deletedStudent._id } })
-        res.status(200).json({ message: 'Student deleted successfully', student: deletedStudent })
+        res.json({ message: 'Student deleted successfully', student: deletedStudent })
     } catch (error) {
         res.status(500).json({ message: 'Internal server error', error: error.message })
     }

@@ -9,13 +9,13 @@ exports.addParent = async (req, res) => {
         // Check if email already exists in User
         const existingParentEmail = await User.findOne({ email });
         if (existingParentEmail) {
-            return res.status(400).json({ message: 'A user already exists with this email address' });
+            return res.json({ message: 'A user already exists with this email address' });
         }
 
         // Check if parent already exists with the same national ID
         const existingParentId = await Parent.findOne({ nationalId });
         if (existingParentId) {
-            return res.status(400).json({ message: 'A parent already exists with this National ID' });
+            return res.json({ message: 'A parent already exists with this National ID' });
         }
 
         // Save new parent
@@ -37,7 +37,7 @@ exports.addParent = async (req, res) => {
 
         await newUser.save();
 
-        res.status(201).json({ parent: savedParent, message: 'Parent account created successfully' });
+        res.json({ parent: savedParent, message: 'Parent account created successfully' });
 
     } catch (error) {
         console.error('Error creating parent:', error);
@@ -50,7 +50,7 @@ exports.addParent = async (req, res) => {
 exports.getAllParents = async (req, res) => {
     try {
         const parents = await Parent.find();
-        res.status(200).json(parents);
+        res.json(parents);
         console.log(parents)
 
     } catch (error) {
@@ -69,9 +69,9 @@ exports.updateParent = async (req, res) => {
             { new: true })
 
         if (!updateParent)
-            return res.status(404).json({ message: 'Parent not found' })
-        res.status(200).json({ updateParent, message: 'Parent updated successfully' });
-        res.status(200).json(updateParent);
+            return res.json({ message: 'Parent not found' })
+        res.json({ updateParent, message: 'Parent updated successfully' });
+        res.json(updateParent);
 
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -84,9 +84,9 @@ exports.deleteParent = async (req, res) => {
   try {
     const deleteParent = await Parent.findByIdAndDelete(req.params.id);
     if (!deleteParent)
-      return res.status(404).json({ message: `Parent  not found `});
+      return res.json({ message: `Parent  not found `});
     res
-      .status(200)
+      
       .json({ message: `Parent ${deleteParent.name} deleted successfully` });
   } catch (error) {
     res.status(500).json({ message: error.message });
